@@ -1,0 +1,116 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <meta charset="UTF-8">
+  <title>Chatterix</title>
+  <style>
+    body {
+      font-family: sans-serif;
+      background-color: #1e1e1e;
+      color: white;
+    }
+    #messages {
+      border: 1px solid #444;
+      padding: 10px;
+      height: 200px;
+      overflow-y: auto;
+      background: #2a2a2a;
+      margin-bottom: 10px;
+    }
+    input, button {
+      padding: 5px;
+      font-size: 16px;
+    }
+    ul#friendsList li {
+      cursor: pointer;
+      color: lightblue;
+    }
+  </style>
+</head>
+<body>
+
+<h1>Chatterix</h1>
+<h3 id="loggedUser">Вы не вошли</h3>
+
+<h3>Друзья</h3>
+<ul id="friendsList">
+  <li onclick="startChat('Alex')">Alex</li>
+  <li onclick="startChat('Mark')">Mark</li>
+  <li onclick="startChat('Sasha')">Sasha</li>
+</ul>
+
+<h3 id="chatWith">Выберите друга для общения</h3>
+<div id="messages"></div>
+
+<input type="text" id="messageInput" placeholder="Сообщение">
+<button onclick="sendMessage()">Отправить</button>
+
+<!-- Firebase SDK -->
+<script type="module">
+  import { initializeApp } from "https://www.gstatic.com/firebasejs/9.22.2/firebase-app.js";
+  import { getDatabase, ref, push, onChildAdded } from "https://www.gstatic.com/firebasejs/9.22.2/firebase-database.js";
+
+  const firebaseConfig = {
+    apiKey: "AIzaSyBXzlr0Saqbv2Hk176EeGAuLTk6P1jUVdM",
+    authDomain: "chatterix-123.firebaseapp.com",
+    databaseURL: "https://chatterix-123-default-rtdb.firebaseio.com",
+    projectId: "chatterix-123",
+    storageBucket: "chatterix-123.appspot.com",
+    messagingSenderId: "877024977371",
+    appId: "1:877024977371:web:eab1bec6d6ed166181c7fe",
+    measurementId: "G-QK732VPPG3"
+  };
+
+  const app = initializeApp(firebaseConfig);
+  const db = getDatabase(app);
+
+  // Вход
+  let username = localStorage.getItem("username");
+  if (!username) {
+    username = prompt("Введите ваше имя:");
+    if (username) {
+      localStorage.setItem("username", username);
+    } else {
+      alert("Имя обязательно!");
+      location.reload();
+    }
+  }
+  document.getElementById("loggedUser").innerText = "Вы вошли как: " + username;
+
+  // Чат
+  let currentFriend = null;
+
+  function startChat(friend) {
+    currentFriend = friend;
+    document.getElementById("chatWith").innerText = "Чат с " + friend;
+    document.getElementById("messages").innerHTML = "";
+
+    const chatId = [username, currentFriend].sort().join("_");
+    const chatRef = ref(db, "messages/" + chatId);
+
+    onChildAdded(chatRef, (data) => {
+      const msg = data.val();
+      const messageDiv = document.createElement("div");
+      messageDiv.textContent = msg.from + ": " + msg.text;
+      document.getElementById("messages").appendChild(messageDiv);
+    });
+  }
+
+  window.sendMessage = function () {
+    const text = document.getElementById("messageInput").value;
+    if (!text || !currentFriend) return;
+
+    const chatId = [username, currentFriend].sort().join("_");
+    const chatRef = ref(db, "messages/" + chatId);
+    push(chatRef, {
+      from: username,
+      text: text,
+      time: Date.now()
+    });
+
+    document.getElementById("messageInput").value = "";
+  };
+</script>
+
+</body>
+</html>
